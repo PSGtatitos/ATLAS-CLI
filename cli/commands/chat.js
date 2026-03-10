@@ -4,7 +4,7 @@ import { askGroq } from '../utils/groq.js'
 import { handleSystemCommand } from '../utils/system.js'
 import Conf from 'conf'
 
-const config = new Conf({ projectName: 'atlas-cli' })
+const config = new Conf({ projectName: 'atlas-terminal' })
 
 const STOP_PHRASES = [
   'goodbye atlas',
