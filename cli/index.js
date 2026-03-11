@@ -14,13 +14,13 @@ program
   .command('chat')
   .description('Start a conversation with ATLAS')
   .option('-f, --file <path>', 'attach a file to start the conversation')
-  .action(chatCommand)
+  .action((options) => chatCommand(options))
 
 program
   .command('ask <question>')
   .description('Ask ATLAS a single question')
   .option('-f, --file <path>', 'attach a file to your question')
-  .action(askCommand)
+  .action((question, options) => askCommand(question, options))
 
 program
   .command('config')
