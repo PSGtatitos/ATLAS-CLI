@@ -1,6 +1,6 @@
 {
   "name": "atlas-terminal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI assistant that lives in your terminal",
   "main": "cli/index.js",
   "bin": {
@@ -14,7 +14,12 @@
     "start": "node cli/index.js",
     "dev": "node --watch cli/index.js"
   },
-  "keywords": ["ai", "cli", "assistant", "terminal"],
+  "keywords": [
+    "ai",
+    "cli",
+    "assistant",
+    "terminal"
+  ],
   "license": "MIT",
   "dependencies": {
     "commander": "^12.0.0",
