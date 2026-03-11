@@ -54,7 +54,10 @@ ATLAS: A REST API is...
 You: exit
 ATLAS: Goodbye!
 ```
-
+```bash
+atlas chat --file index.js
+```
+This provides the chat with access to read the file and tell you anything you ask about that file.
 ---
 
 ### `atlas ask`
