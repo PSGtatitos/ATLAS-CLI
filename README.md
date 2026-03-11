@@ -108,7 +108,7 @@ Your API key is stored locally at `~/.config/atlas-cli/config.json` and never se
 - [x] `atlas ask` — single question mode
 - [x] `atlas config` — API key setup
 - [ ] Streaming responses
-- [ ] `atlas chat` with file context (`atlas chat --file index.js`)
+- [X] `atlas chat` with file context (`atlas chat --file index.js`)
 - [ ] Web search tool
 - [ ] Read and write files
 - [ ] TTS voice mode
