@@ -63,28 +63,44 @@ function attachProject(userInput) {
     return null
   }
 
-  const readProject = (pathToRead, level = 0) => {
-    const dirContent = fs.readdirSync(pathToRead)
-    const result = []
+  const IGNORED = ['node_modules', '.git', '.env', 'dist', 'build']
+  const READABLE_EXTENSIONS = ['.js', '.ts', '.json', '.md', '.py', '.html', '.css', '.txt']
 
-    dirContent.forEach(item => {
+  const readProject = (pathToRead, level = 0) => {
+    const result = []
+    const dirContent = fs.readdirSync(pathToRead)
+
+    for (const item of dirContent) {
+      if (IGNORED.includes(item)) continue
+
       const fullPath = path.join(pathToRead, item)
       const stats = fs.statSync(fullPath)
 
       if (stats.isDirectory()) {
-        result.push(`  `.repeat(level) + 'Directory: ' + item)
+        result.push(`\n${'  '.repeat(level)}📁 ${item}/`)
         result.push(...readProject(fullPath, level + 1))
       } else if (stats.isFile()) {
-        result.push(`  `.repeat(level) + 'File: ' + item)
+        const ext = path.extname(item)
+        result.push(`\n${'  '.repeat(level)}📄 ${item}`)
+
+        if (READABLE_EXTENSIONS.includes(ext) && stats.size < 20000) {
+          const content = fs.readFileSync(fullPath, 'utf8')
+          result.push(`${'  '.repeat(level + 1)}\`\`\`\n${content}\n\`\`\``)
+        }
       }
-    })
+    }
 
     return result
   }
 
   const projectContent = readProject(resolved)
+  const fullText = projectContent.join('\n')
 
-  return `${question}\n\nProject "${projectPath}" contents:\n\`\`\`\n${projectContent.join('\n')}\n\`\`\``
+  if (fullText.length > 40000) {
+    console.log(chalk.yellow('Warning: Project is large, some files may be truncated.\n'))
+  }
+
+  return `${question}\n\nProject "${projectPath}" structure and contents:\n${fullText}`
 }
 
 export async function chatCommand(options) {
@@ -125,6 +141,64 @@ export async function chatCommand(options) {
     console.log(chalk.gray(`\nLoaded: ${fileName}\n`))
   }
 
+  // If project passed at startup load it into context
+  if (options.project) {
+    const projectPath = path.resolve(options.project)
+
+    if (!fs.existsSync(projectPath)) {
+      console.log(chalk.red(`Project not found: ${options.project}`))
+      process.exit(1)
+    }
+
+    const IGNORED = ['node_modules', '.git', '.env', 'dist', 'build']
+    const READABLE_EXTENSIONS = ['.js', '.ts', '.json', '.md', '.py', '.html', '.css', '.txt']
+
+    const readProject = (pathToRead, level = 0) => {
+      const result = []
+      const dirContent = fs.readdirSync(pathToRead)
+
+      for (const item of dirContent) {
+        if (IGNORED.includes(item)) continue
+
+        const fullPath = path.join(pathToRead, item)
+        const stats = fs.statSync(fullPath)
+
+        if (stats.isDirectory()) {
+          result.push(`\n${'  '.repeat(level)}📁 ${item}/`)
+          result.push(...readProject(fullPath, level + 1))
+        } else if (stats.isFile()) {
+          const ext = path.extname(item)
+          result.push(`\n${'  '.repeat(level)}📄 ${item}`)
+
+          if (READABLE_EXTENSIONS.includes(ext) && stats.size < 20000) {
+            const content = fs.readFileSync(fullPath, 'utf8')
+            result.push(`${'  '.repeat(level + 1)}\`\`\`\n${content}\n\`\`\``)
+          }
+        }
+      }
+
+      return result
+    }
+
+    const projectContent = readProject(projectPath)
+    const fullText = projectContent.join('\n')
+
+    if (fullText.length > 40000) {
+      console.log(chalk.yellow('Warning: Project is large, some files may be truncated.\n'))
+    }
+
+    conversationHistory.push({
+      role: 'user',
+      content: `I'm going to ask you questions about this project:\n${fullText}`
+    })
+    conversationHistory.push({
+      role: 'assistant',
+      content: `Got it! I've read the project structure and contents. What would you like to know?`
+    })
+
+    console.log(chalk.gray(`\nLoaded project: ${options.project}\n`))
+  }
+
   console.log(chalk.cyan('─'.repeat(50)))
   console.log(chalk.cyan('  ATLAS — type your message, or "exit" to quit'))
   console.log(chalk.cyan('  Tip: attach a file with --file path/to/file'))
@@ -140,19 +214,16 @@ export async function chatCommand(options) {
     rl.question(chalk.green('You: '), async (input) => {
       let userInput = input.trim()
 
-      // Empty input
       if (!userInput) {
         return askQuestion()
       }
 
-      // Stop phrases
       if (STOP_PHRASES.some(p => userInput.toLowerCase().includes(p))) {
         console.log(chalk.cyan('\nATLAS: Goodbye!\n'))
         rl.close()
         return
       }
 
-      // Noise/short input
       if (
         userInput.length < MIN_INPUT_LENGTH ||
         NOISE_WORDS.has(userInput.toLowerCase())
@@ -161,27 +232,24 @@ export async function chatCommand(options) {
         return askQuestion()
       }
 
-      // File attachment check
       if (userInput.includes('--file')) {
         const withFile = attachFile(userInput)
         if (!withFile) return askQuestion()
         userInput = withFile
       }
-      
+
       if (userInput.includes('--project')) {
         const withProject = attachProject(userInput)
         if (!withProject) return askQuestion()
         userInput = withProject
       }
 
-      // System command check
       const systemResponse = handleSystemCommand(userInput)
       if (systemResponse) {
         console.log(chalk.yellow(`System: ${systemResponse}\n`))
         return askQuestion()
       }
 
-      // Ask Groq
       try {
         process.stdout.write(chalk.blue('ATLAS: '))
 
