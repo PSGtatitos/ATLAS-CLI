@@ -14,6 +14,7 @@ program
   .command('chat')
   .description('Start a conversation with ATLAS')
   .option('-f, --file <path>', 'attach a file to start the conversation')
+  .option('--project <path>', 'attach a project to start the conversation')
   .action((options) => chatCommand(options))
 
 program
