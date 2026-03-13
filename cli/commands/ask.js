@@ -3,6 +3,7 @@ import ora from 'ora'
 import fs from 'fs'
 import path from 'path'
 import { askGroq } from '../utils/groq.js'
+import { searchWeb } from '../utils/search.js'
 import Conf from 'conf'
 
 const config = new Conf({ projectName: 'atlas-cli' })
@@ -110,11 +111,27 @@ export async function askCommand(question, options) {
   const spinner = ora('Thinking...').start()
 
   try {
+    let searchResults = null
+    let urls = []
+
+    // Handle --search flag
+    if (options.search) {
+      if (!config.get('tavilyApiKey')) {
+        spinner.stop()
+        console.log(chalk.red('Tavily API key not set. Run atlas config to add it.'))
+        process.exit(1)
+      }
+
+      spinner.text = 'Searching the web...'
+      const results = await searchWeb(fullQuestion)
+      searchResults = results.formatted
+      urls = results.urls
+    }
+
     spinner.stop()
     process.stdout.write(chalk.blue('ATLAS: '))
 
-    let stream = await askGroq(fullQuestion, [])
-
+    let stream = await askGroq(fullQuestion, [], searchResults)
     let fullResponse = ''
 
     for await (const chunk of stream) {
@@ -133,6 +150,12 @@ export async function askCommand(question, options) {
       }
     }
 
+    // Print sources if search was used
+    if (urls.length > 0) {
+      console.log('\n' + chalk.gray('Sources:'))
+      urls.forEach(url => console.log(chalk.gray(`→ ${url}`)))
+    }
+
     console.log('\n')
 
   } catch (error) {
@@ -141,6 +164,8 @@ export async function askCommand(question, options) {
       console.log(chalk.red('Rate limit reached. Please wait a moment before trying again.'))
     } else if (error.message?.includes('API key')) {
       console.log(chalk.red('Invalid API key. Run atlas config to update it.'))
+    } else if (error.message?.includes('tavily')) {
+      console.log(chalk.red('Tavily API key missing or invalid. Run atlas config to set it up.'))
     } else {
       console.log(chalk.red(`Error: ${error.message}`))
     }

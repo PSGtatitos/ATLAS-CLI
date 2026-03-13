@@ -22,11 +22,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "commander": "^12.0.0",
+    "@tavily/core": "^0.7.2",
     "chalk": "^5.3.0",
-    "ora": "^8.0.0",
-    "inquirer": "^9.0.0",
+    "commander": "^12.0.0",
     "conf": "^12.0.0",
-    "groq-sdk": "^0.3.0"
+    "groq-sdk": "^0.3.0",
+    "inquirer": "^9.0.0",
+    "ora": "^8.0.0"
   }
 }

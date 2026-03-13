@@ -15,6 +15,7 @@ program
   .description('Start a conversation with ATLAS')
   .option('-f, --file <path>', 'attach a file to start the conversation')
   .option('-p, --project <path>', 'attach a project directory to start the conversation')
+  .option('-s, --search', 'search the web to answer your question')
   .action((options) => chatCommand(options))
 
 program
@@ -22,6 +23,7 @@ program
   .description('Ask ATLAS a single question')
   .option('-f, --file <path>', 'attach a file to your question')
   .option('-p, --project <path>', 'attach a project directory to your question')
+  .option('-s, --search', 'search the web to answer your question')
   .action((question, options) => askCommand(question, options))
 
 program

@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import fs from 'fs'
 import path from 'path'
 import { askGroq } from '../utils/groq.js'
+import { searchWeb } from '../utils/search.js'
 import { handleSystemCommand } from '../utils/system.js'
 import Conf from 'conf'
 
@@ -24,6 +25,8 @@ const NOISE_WORDS = new Set([
 ])
 
 const MIN_INPUT_LENGTH = 2
+const IGNORED = ['node_modules', '.git', '.env', 'dist', 'build']
+const READABLE_EXTENSIONS = ['.js', '.ts', '.json', '.md', '.py', '.html', '.css', '.txt']
 
 function attachFile(userInput) {
   if (!userInput.includes('--file')) return userInput
@@ -62,9 +65,6 @@ function attachProject(userInput) {
     console.log(chalk.red(`Project not found: ${projectPath}`))
     return null
   }
-
-  const IGNORED = ['node_modules', '.git', '.env', 'dist', 'build']
-  const READABLE_EXTENSIONS = ['.js', '.ts', '.json', '.md', '.py', '.html', '.css', '.txt']
 
   const readProject = (pathToRead, level = 0) => {
     const result = []
@@ -150,9 +150,6 @@ export async function chatCommand(options) {
       process.exit(1)
     }
 
-    const IGNORED = ['node_modules', '.git', '.env', 'dist', 'build']
-    const READABLE_EXTENSIONS = ['.js', '.ts', '.json', '.md', '.py', '.html', '.css', '.txt']
-
     const readProject = (pathToRead, level = 0) => {
       const result = []
       const dirContent = fs.readdirSync(pathToRead)
@@ -203,6 +200,7 @@ export async function chatCommand(options) {
   console.log(chalk.cyan('  ATLAS — type your message, or "exit" to quit'))
   console.log(chalk.cyan('  Tip: attach a file with --file path/to/file'))
   console.log(chalk.cyan('  Tip: attach a project with --project path/to/project'))
+  console.log(chalk.cyan('  Tip: search the web with --search in your message'))
   console.log(chalk.cyan('─'.repeat(50)) + '\n')
 
   const rl = readline.createInterface({
@@ -244,6 +242,29 @@ export async function chatCommand(options) {
         userInput = withProject
       }
 
+      // Web search check
+      let searchResults = null
+      let searchUrls = []
+
+      if (userInput.includes('--search')) {
+        userInput = userInput.replace('--search', '').trim()
+
+        if (!config.get('tavilyApiKey')) {
+          console.log(chalk.red('Tavily API key not set. Run atlas config to add it.\n'))
+          return askQuestion()
+        }
+
+        process.stdout.write(chalk.gray('Searching the web...\n'))
+
+        try {
+          const results = await searchWeb(userInput)
+          searchResults = results.formatted
+          searchUrls = results.urls
+        } catch (error) {
+          console.log(chalk.red('Search failed. Continuing without web results.\n'))
+        }
+      }
+
       const systemResponse = handleSystemCommand(userInput)
       if (systemResponse) {
         console.log(chalk.yellow(`System: ${systemResponse}\n`))
@@ -253,8 +274,7 @@ export async function chatCommand(options) {
       try {
         process.stdout.write(chalk.blue('ATLAS: '))
 
-        const stream = await askGroq(userInput, conversationHistory)
-
+        let stream = await askGroq(userInput, conversationHistory, searchResults)
         let fullResponse = ''
 
         for await (const chunk of stream) {
@@ -262,14 +282,21 @@ export async function chatCommand(options) {
           process.stdout.write(token)
           fullResponse += token
 
-          // Check if the response is streaming a large response
           if (chunk.choices[0]?.finish_reason === 'length') {
-            // Pause the stream
             await new Promise(resolve => setTimeout(resolve, 1000))
-
-            // Continue the conversation with the next part of the response
-            let stream = await askGroq(fullResponse, conversationHistory)
+            stream = await askGroq(fullResponse, [
+              ...conversationHistory,
+              { role: 'user', content: userInput },
+              { role: 'assistant', content: fullResponse },
+              { role: 'user', content: 'Please continue.' }
+            ])
           }
+        }
+
+        // Print sources if search was used
+        if (searchUrls.length > 0) {
+          console.log('\n' + chalk.gray('Sources:'))
+          searchUrls.forEach(url => console.log(chalk.gray(`→ ${url}`)))
         }
 
         console.log('\n')
@@ -278,7 +305,9 @@ export async function chatCommand(options) {
         conversationHistory.push({ role: 'assistant', content: fullResponse })
 
       } catch (error) {
-        if (error.message?.includes('API key')) {
+        if (error.status === 429) {
+          console.log(chalk.red('\nRate limit reached. Please wait a moment.\n'))
+        } else if (error.message?.includes('API key')) {
           console.log(chalk.red('\nInvalid API key. Run atlas config to update it.\n'))
         } else {
           console.log(chalk.red(`\nError: ${error.message}\n`))
