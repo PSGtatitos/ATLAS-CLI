@@ -17,6 +17,7 @@ program
   .option('-p, --project <path>', 'attach a project directory to start the conversation')
   .option('-s, --search', 'search the web to answer your question')
   .option('-w, --write <path>', 'write response to a file')
+  .option('-g, --git', 'include git context in your question')
   .action((options) => chatCommand(options))
 
 program
@@ -26,6 +27,7 @@ program
   .option('-p, --project <path>', 'attach a project directory to your question')
   .option('-s, --search', 'search the web to answer your question')
   .option('-w, --write <path>', 'write response to a file')
+  .option('-g, --git', 'include git context in your question')
   .action((question, options) => askCommand(question, options))
 
 program

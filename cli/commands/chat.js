@@ -5,6 +5,7 @@ import path from 'path'
 import { askGroq } from '../utils/groq.js'
 import { searchWeb } from '../utils/search.js'
 import { extractCode, writeFile } from '../utils/write.js'
+import { getGitContext, isGitRepo } from '../utils/git.js'
 import { handleSystemCommand } from '../utils/system.js'
 import Conf from 'conf'
 
@@ -197,12 +198,34 @@ export async function chatCommand(options) {
     console.log(chalk.gray(`\nLoaded project: ${options.project}\n`))
   }
 
+  // If git flag passed at startup load git context
+  if (options.git) {
+    if (!isGitRepo()) {
+      console.log(chalk.red('Not a git repository.'))
+      process.exit(1)
+    }
+
+    const gitContext = getGitContext()
+    if (gitContext) {
+      conversationHistory.push({
+        role: 'user',
+        content: `Here is my current git context:\n\`\`\`\n${gitContext}\n\`\`\``
+      })
+      conversationHistory.push({
+        role: 'assistant',
+        content: `Got it! I can see your git status and recent history. What would you like to know?`
+      })
+      console.log(chalk.gray('\nGit context loaded.\n'))
+    }
+  }
+
   console.log(chalk.cyan('─'.repeat(50)))
   console.log(chalk.cyan('  ATLAS — type your message, or "exit" to quit'))
   console.log(chalk.cyan('  Tip: attach a file with --file path/to/file'))
   console.log(chalk.cyan('  Tip: attach a project with --project path/to/project'))
   console.log(chalk.cyan('  Tip: search the web with --search in your message'))
   console.log(chalk.cyan('  Tip: write response to a file with --write filename'))
+  console.log(chalk.cyan('  Tip: include git context with --git in your message'))
   console.log(chalk.cyan('─'.repeat(50)) + '\n')
 
   const rl = readline.createInterface({
@@ -250,6 +273,21 @@ export async function chatCommand(options) {
         const withProject = attachProject(userInput)
         if (!withProject) return askQuestion()
         userInput = withProject
+      }
+
+      // Git context check
+      if (userInput.includes('--git')) {
+        userInput = userInput.replace('--git', '').trim()
+
+        if (!isGitRepo()) {
+          console.log(chalk.red('Not a git repository.\n'))
+          return askQuestion()
+        }
+
+        const gitContext = getGitContext()
+        if (gitContext) {
+          userInput = `${userInput}\n\nHere is the current git context:\n\`\`\`\n${gitContext}\n\`\`\``
+        }
       }
 
       // Web search check

@@ -5,6 +5,7 @@ import path from 'path'
 import { askGroq } from '../utils/groq.js'
 import { searchWeb } from '../utils/search.js'
 import { extractCode, writeFile } from '../utils/write.js'
+import { getGitContext, isGitRepo } from '../utils/git.js'
 import Conf from 'conf'
 
 const config = new Conf({ projectName: 'atlas-terminal' })
@@ -109,6 +110,20 @@ export async function askCommand(question, options) {
     fullQuestion = attachProject(fullQuestion, options.project)
   }
 
+  // Handle --git flag
+  if (options.git) {
+    if (!isGitRepo()) {
+      console.log(chalk.red('Not a git repository.'))
+      process.exit(1)
+    }
+
+    const gitContext = getGitContext()
+    if (gitContext) {
+      fullQuestion = `${fullQuestion}\n\nHere is the current git context:\n\`\`\`\n${gitContext}\n\`\`\``
+      console.log(chalk.gray('Git context loaded.\n'))
+    }
+  }
+  
   const spinner = ora('Thinking...').start()
 
   try {
