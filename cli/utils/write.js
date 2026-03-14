@@ -4,18 +4,24 @@ import chalk from 'chalk'
 import readline from 'readline'
 
 export function extractCode(response) {
-    // Try to extract code from markdown code block
-    const codeBlockRegex = /```(?:\w+)?\n([\s\S]*?)```/g
-    const matches = [...response.matchAll(codeBlockRegex)]
-     
-    if (matches.length > 0) {
-        // Return the largest code block found 
-        return matches.reduce((longest, match) =>
-        match[1].length > longest.lenght ? match[1] : longest
-    , '')
-    }
-    // If no code block found return the full response
-    return response
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
+  const matches = [...response.matchAll(codeBlockRegex)]
+
+  if (matches.length === 0) return response
+
+  // Priority order — prefer these languages over bash/shell
+  const priority = ['javascript', 'typescript', 'python', 'html', 'css', 'json', 'js', 'ts']
+
+  // First try to find a priority language block
+  for (const lang of priority) {
+    const match = matches.find(m => m[1]?.toLowerCase() === lang)
+    if (match) return match[2]
+  }
+
+  // If no priority language found, return the largest block
+  return matches.reduce((longest, match) =>
+    match[2].length > longest.length ? match[2] : longest
+  , '')
 }
 
 export async function writeFile(filePath, content) {
