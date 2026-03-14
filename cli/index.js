@@ -16,6 +16,7 @@ program
   .option('-f, --file <path>', 'attach a file to start the conversation')
   .option('-p, --project <path>', 'attach a project directory to start the conversation')
   .option('-s, --search', 'search the web to answer your question')
+  .option('-w, --write <path>', 'write response to a file')
   .action((options) => chatCommand(options))
 
 program
@@ -24,6 +25,7 @@ program
   .option('-f, --file <path>', 'attach a file to your question')
   .option('-p, --project <path>', 'attach a project directory to your question')
   .option('-s, --search', 'search the web to answer your question')
+  .option('-w, --write <path>', 'write response to a file')
   .action((question, options) => askCommand(question, options))
 
 program
