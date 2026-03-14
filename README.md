@@ -2,7 +2,7 @@
 
 An open source AI assistant that lives in your terminal. Bring your own API keys — no accounts, no subscriptions, no limits.
 
-![Version](https://img.shields.io/badge/version-1.0.6-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.27-blue?style=flat-square)
 ![Node](https://img.shields.io/badge/node-18+-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-purple?style=flat-square)
 ![BYOK](https://img.shields.io/badge/BYOK-bring%20your%20own%20keys-orange?style=flat-square)
@@ -17,6 +17,7 @@ An open source AI assistant that lives in your terminal. Bring your own API keys
 - 📁 **Project context** — load your entire codebase into context
 - 🌐 **Web search** — search the web from your terminal
 - ✍️ **Write files** — generate and write code directly to files
+- 🔀 **Git integration** — understand your repo state and generate commit messages
 - 🔄 **Streaming responses** — responses print token by token
 
 ---
@@ -62,8 +63,9 @@ atlas chat
 
 Options:
 ```bash
-atlas chat --file path/to/file       # load a file into context
-atlas chat --project path/to/project # load entire project into context
+atlas chat --file path/to/file        # load a file into context
+atlas chat --project path/to/project  # load entire project into context
+atlas chat --git                      # load git context into conversation
 ```
 
 Mid-conversation flags:
@@ -71,6 +73,7 @@ Mid-conversation flags:
 You: explain this --file index.js
 You: search for latest Node.js version --search
 You: create a README --write README.md
+You: what changed recently --git
 ```
 
 ---
@@ -85,10 +88,12 @@ atlas ask "what is the difference between null and undefined?"
 
 Options:
 ```bash
-atlas ask "explain this" --file index.js                    # attach a file
-atlas ask "explain this" --project .                        # attach current project
-atlas ask "latest React version" --search                   # search the web
-atlas ask "create an express server" --write server.js      # write to file
+atlas ask "explain this" --file index.js                     # attach a file
+atlas ask "explain this" --project .                         # attach current project
+atlas ask "latest React version" --search                    # search the web
+atlas ask "create an express server" --write server.js       # write to file
+atlas ask "what changed" --git                               # include git context
+atlas ask "write a commit message" --git                     # generate commit message
 ```
 
 Supports piping:
@@ -107,6 +112,16 @@ atlas config
 ```
 
 Keys are stored locally at `~/.config/atlas-terminal/config.json` and never sent anywhere except directly to Groq and Tavily.
+
+---
+
+### `atlas help`
+
+Display all available commands and options.
+
+```bash
+atlas help
+```
 
 ---
 
@@ -132,7 +147,19 @@ atlas ask "what is the latest version of Node.js" --search
 atlas chat --project .
 You: what does this project do?
 You: how can I improve the architecture?
-You: add input validation --file index.js --write index.js
+
+# Git workflow
+git add .
+atlas ask "write a commit message for my staged changes" --git
+
+# Understand recent history
+atlas ask "summarize what changed in the last 10 commits" --git
+
+# Git context in chat
+atlas chat --git
+You: what did I change today?
+You: what branch am I on?
+You: write a commit message for my staged changes
 ```
 
 ---
@@ -148,7 +175,20 @@ Your machine
     ↓ direct API call
 Groq (AI responses)
 Tavily (web search)
+Git (local repo context)
 ```
+
+---
+
+## Flags Reference
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--file <path>` | `-f` | Attach a file to your question |
+| `--project <path>` | `-p` | Attach a project directory |
+| `--search` | `-s` | Search the web |
+| `--write <path>` | `-w` | Write response to a file |
+| `--git` | `-g` | Include git context |
 
 ---
 
@@ -186,13 +226,14 @@ ATLAS Terminal is and will remain open source and BYOK. Features that require a 
 - [x] `atlas chat` — conversational mode
 - [x] `atlas ask` — single question mode
 - [x] `atlas config` — API key setup
+- [x] `atlas help` — help command
 - [x] Streaming responses
 - [x] `--file` flag — attach files to questions
 - [x] `--project` flag — load entire codebase
 - [x] `--search` flag — web search via Tavily
 - [x] `--write` flag — write responses to files
-- [ ] Run terminal commands
-- [X] Git integration
+- [x] `--git` flag — git integration and commit message generation
+- [ ] `--run` flag — execute terminal commands safely
 - [ ] Multi-file write support
 
 ---

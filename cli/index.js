@@ -4,6 +4,7 @@ import { program } from 'commander'
 import { chatCommand } from './commands/chat.js'
 import { askCommand } from './commands/ask.js'
 import { configCommand } from './commands/config.js'
+import chalk from 'chalk'
 
 program
   .name('atlas')
